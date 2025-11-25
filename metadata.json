@@ -1,0 +1,5 @@
+{
+  "name": "Antelope MCP Demo MVP",
+  "description": "An admin interface to manage and track social media presence for various brands under the Antelope MCP platform.",
+  "requestFramePermissions": []
+}

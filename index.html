@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Antelope MCP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <!-- flatpickr -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+             fontFamily: {
+              sans: ['Poppins', 'sans-serif'],
+            },
+            fontSize: {
+              'body': '13px',
+              'caption': '11px',
+            },
+            colors: {
+              background: '#0F172A',      // Slate 900
+              surface: '#1E293B',         // Slate 800
+              primary: '#18898D',         // Custom Teal
+              accent: '#F97316',          // Orange 500
+              'text-main': '#F1F5F9',       // Slate 100
+              'text-secondary': '#94A3B8',  // Slate 400
+              border: '#334155',          // Slate 700
+              'dark-blue': '#2563EB',      // Blue 600
+              'light-blue': '#60A5FA',     // Blue 400
+              success: '#22C55E',         // Green 500
+              warning: '#EAB308',         // Yellow 500
+              danger: '#EF4444',          // Red 500
+            },
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        font-family: 'Poppins', sans-serif;
+      }
+      body.bg-background {
+        background-color: #0F172A;
+        background-image: 
+          linear-gradient(rgba(51, 65, 85, 0.2) 1px, transparent 1px), 
+          linear-gradient(90deg, rgba(51, 65, 85, 0.2) 1px, transparent 1px);
+        background-size: 2rem 2rem;
+      }
+      .fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+        animation-fill-mode: both;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      /* Custom styles for flatpickr */
+      .flatpickr-calendar { background: #1E293B !important; border-color: #334155 !important; box-shadow: 0 0 15px rgba(0,0,0,0.5) !important; }
+      .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange { background: #18898D !important; border-color: #18898D !important; }
+      .flatpickr-day:hover { background: #334155 !important; }
+      .flatpickr-time input:hover, .flatpickr-time .flatpickr-am-pm:hover { background: #334155 !important; }
+      span.flatpickr-weekday, .flatpickr-months .flatpickr-month, .numInputWrapper span, .flatpickr-time .flatpickr-time-separator, .flatpickr-time .flatpickr-am-pm { color: #F1F5F9 !important; }
+      .flatpickr-current-month .numInput, .flatpickr-time input { color: #F1F5F9 !important; }
+      /* Custom Scrollbar */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: #334155;
+        border-radius: 4px;
+        border: 2px solid #1E293B;
+      }
+      .custom-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: #334155 #1E293B;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.20.0"
+  }
+}
+</script>
+</head>
+  <body class="bg-background text-text-main">
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+  </body>
+</html>

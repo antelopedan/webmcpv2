@@ -1,0 +1,4 @@
+{
+  "BASE_API_URL": "https://api.antelopeinc.com/",
+  "USER_AUTH_JWT_TOKEN": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMTFiMDUyMC1mZmZlLTQyYzktYjcwMi00MDAxOTFlYjUwZjIiLCJhdWQiOlsiZmFzdGFwaS11c2VyczphdXRoIl0sImV4cCI6MTc2NTgzNzc3MX0.2vyBk3roaD3I1AAqBzEdHPsMevl_JwPTNlcN_OKLOEI"
+}
