@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { api } from '../../api';
 import { TemplateCard } from '../home/TemplateCard';
@@ -19,12 +18,11 @@ type RawTemplate = {
     prompt: string;
     category: string;
     details: string;
+    sample_reports: SampleReport[];
 };
 
-type RawTemplatesResponse = {
-    templates: RawTemplate[];
-    sample_reports: SampleReport[];
-}
+// API now returns RawTemplate[] directly, so we don't need RawTemplatesResponse wrapper for the main endpoint
+// However, suggestions endpoint might still use a wrapper or return array. Assuming array based on context.
 
 const TemplateSection: React.FC<{ title: string, icon: React.ReactNode, templates: AnalysisTemplate[], onSelectTemplate: (t: AnalysisTemplate) => void }> = 
 ({ title, icon, templates, onSelectTemplate }) => {
@@ -129,8 +127,9 @@ const AnalysisPrompt: React.FC<AnalysisPromptProps> = ({ searchTerm, onSearchCha
     };
 
     return (
-        <div className="fade-in space-y-6">
-            <section className="bg-surface border border-border rounded-xl p-8">
+        <div className="fade-in flex flex-col items-center">
+            {/* Search Container */}
+            <div className="bg-surface border border-border rounded-xl p-8 w-full max-w-4xl mx-auto">
                 <h2 className="text-xl font-semibold text-text-main mb-4">What would you like to discover about your content?</h2>
                 <div className="relative">
                     <textarea
@@ -148,13 +147,15 @@ const AnalysisPrompt: React.FC<AnalysisPromptProps> = ({ searchTerm, onSearchCha
                         <span>Suggest</span>
                     </button>
                 </div>
-            </section>
-            <div className="flex flex-wrap justify-center gap-3">
+            </div>
+            
+            {/* Suggestions Container - Floating below */}
+            <div className="flex flex-wrap justify-center gap-3 mt-4">
                 {suggestions.map((text) => (
                     <button 
                         key={text}
                         onClick={() => handleSuggestionClick(text)}
-                        className="bg-surface border border-border text-text-secondary text-body px-4 py-2 rounded-full hover:border-primary hover:text-primary transition-colors text-sm"
+                        className="bg-surface border border-border text-text-secondary text-body px-4 py-2 rounded-full hover:border-primary hover:text-primary transition-colors text-sm shadow-sm"
                     >
                         {text}
                     </button>
@@ -178,7 +179,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
     
     // Data Sources
     const [allTemplates, setAllTemplates] = useState<AnalysisTemplate[]>([]);
-    const [allSampleReports, setAllSampleReports] = useState<SampleReport[]>([]);
     const [suggestedTemplates, setSuggestedTemplates] = useState<AnalysisTemplate[]>([]);
 
     // State
@@ -208,6 +208,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 prompt: rawTemplate.prompt,
                 category: rawTemplate.category,
                 estimated_time_minutes: timeMatch ? parseInt(timeMatch[0], 10) : 5,
+                sample_reports: rawTemplate.sample_reports || []
             };
         });
     };
@@ -229,15 +230,18 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 setHasBrands(brandsResponse.total > 0);
 
                 // 3. Fetch All Templates
-                const response = await api.get<RawTemplatesResponse>('templates');
-                const transformed = transformTemplates(response.templates);
-                setAllTemplates(transformed);
+                // The API now returns RawTemplate[] directly
+                const response = await api.get<RawTemplate[]>('templates');
                 
-                if (response.sample_reports) {
-                    setAllSampleReports(response.sample_reports);
-                }
+                // Handle case where it might be wrapped (if API changes back or varies)
+                // safely casting or checking would be ideal, but assuming array per user instruction
+                const templatesData = Array.isArray(response) ? response : (response as any).templates;
+                
+                const transformed = transformTemplates(templatesData);
+                setAllTemplates(transformed);
 
             } catch (err) {
+                console.error(err);
                 setError("Failed to load data.");
             } finally {
                 setIsLoading(false);
@@ -252,8 +256,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
         setIsSearching(true);
         try {
             const endpoint = `templates?search=${encodeURIComponent(searchQuery)}`;
-            const response = await api.get<RawTemplatesResponse>(endpoint);
-            setSuggestedTemplates(transformTemplates(response.templates));
+            const response = await api.get<RawTemplate[]>(endpoint);
+            // Handle potential wrapper here too just in case
+            const templatesData = Array.isArray(response) ? response : (response as any).templates;
+            setSuggestedTemplates(transformTemplates(templatesData));
         } catch (e) {
             console.error("Manual suggest failed", e);
             setSuggestedTemplates([]);
@@ -429,7 +435,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             {viewingTemplate && (
                 <TemplateModal 
                     template={viewingTemplate}
-                    sampleReports={allSampleReports}
+                    sampleReports={viewingTemplate.sample_reports.slice(0, 3)}
                     onViewSampleReport={handleViewSampleReport}
                     onClose={() => setViewingTemplate(null)}
                 />

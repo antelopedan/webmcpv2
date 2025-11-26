@@ -12,7 +12,88 @@ import { SearchIcon } from '../icons/SearchIcon';
 import { TimestampCalendarIcon } from '../icons/TimestampCalendarIcon';
 import { StyledDropdown } from '../shared/StyledDropdown';
 import { PlusIcon } from '../icons/PlusIcon';
-import { getSocialPlatform } from '../utils/socialUtils';
+import { getSocialPlatform, getSocialIcon } from '../utils/socialUtils';
+import { GridViewIcon, ListViewIcon } from '../icons/reports';
+import { BrandAvatar } from '../utils/brandUtils';
+import { EditIcon } from '../icons/EditIcon';
+import { CheckCircleIcon } from '../icons/CheckCircleIcon';
+import { SyncingIcon } from '../icons/SyncingIcon';
+
+const ErrorIcon: React.FC = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-danger">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+);
+
+const BrandCardSkeleton: React.FC = () => (
+    <div className="bg-surface border border-border rounded-xl p-6 animate-pulse flex flex-col h-full">
+        <div className="flex justify-between items-start mb-4">
+            <div className="w-12 h-12 bg-border rounded-full"></div>
+            <div className="w-20 h-5 bg-border rounded"></div>
+        </div>
+        <div className="space-y-2 flex-1">
+            <div className="h-6 w-3/4 bg-border rounded"></div>
+            <div className="h-4 w-1/2 bg-border rounded"></div>
+        </div>
+        <div className="mt-6 pt-4 border-t border-border flex justify-between items-center">
+             <div className="flex gap-2">
+                <div className="w-6 h-6 bg-border rounded-full"></div>
+                <div className="w-6 h-6 bg-border rounded-full"></div>
+                <div className="w-6 h-6 bg-border rounded-full"></div>
+             </div>
+             <div className="w-6 h-6 bg-border rounded"></div>
+        </div>
+    </div>
+);
+
+const BrandCard: React.FC<{ brand: Brand; onEdit: (brand: Brand) => void }> = ({ brand, onEdit }) => {
+    return (
+        <div className="bg-surface border border-border rounded-xl p-6 flex flex-col h-full hover:border-primary/60 transition-all group relative hover:shadow-lg">
+            <div className="flex justify-between items-start mb-4">
+               <BrandAvatar name={brand.name} src={brand.logo_url} size="w-12 h-12" />
+               <div className="flex items-center">
+                    {brand.status === 'syncing' || brand.status === 'pending' ? (
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-light-blue bg-light-blue/10 px-2 py-1 rounded-full">
+                            <SyncingIcon />
+                            <span>Syncing</span>
+                        </div>
+                    ) : brand.status === 'error' ? (
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-danger bg-danger/10 px-2 py-1 rounded-full" title="Syncing failed">
+                            <ErrorIcon />
+                            <span>Error</span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-success bg-success/10 px-2 py-1 rounded-full">
+                           <CheckCircleIcon />
+                           <span>Synced</span>
+                        </div>
+                    )}
+               </div>
+            </div>
+            <div className="flex-1">
+               <h3 className="text-lg font-semibold text-text-main mb-1 truncate" title={brand.name}>{brand.name}</h3>
+               <p className="text-body text-text-secondary">{brand.social_profiles.length} social profiles</p>
+            </div>
+            <div className="mt-6 pt-4 border-t border-border flex justify-between items-center">
+               <div className="flex gap-2 overflow-hidden">
+                  {brand.social_profiles.slice(0, 4).map((profile) => (
+                        <a key={profile.id} href={profile.profile_url} target="_blank" rel="noopener noreferrer" className="text-text-secondary hover:text-primary transition-colors" title={profile.profile_url}>
+                            {getSocialIcon(profile.profile_url)}
+                        </a>
+                    ))}
+                    {brand.social_profiles.length > 4 && (
+                        <span className="text-xs text-text-secondary flex items-center">+{brand.social_profiles.length - 4}</span>
+                    )}
+               </div>
+               <button onClick={() => onEdit(brand)} className="text-text-secondary hover:text-primary transition-colors p-1 rounded-md hover:bg-border" title="Edit Brand">
+                  <EditIcon />
+               </button>
+            </div>
+        </div>
+    );
+};
 
 const formatCompactNumber = (num: number): string => {
   return new Intl.NumberFormat('en-US', {
@@ -89,6 +170,7 @@ export const BrandsPage: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState('name_asc');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -294,29 +376,35 @@ export const BrandsPage: React.FC = () => {
                     />
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <label htmlFor="sort-select" className="text-sm font-medium text-text-secondary flex-shrink-0">Sort by:</label>
-                    <div className="w-full sm:w-52">
-                        <StyledDropdown
-                            triggerContent={sortOptions[sortOption]}
-                            widthClass="w-full"
-                        >
-                            {(closeDropdown) => (
-                                <>
-                                    {Object.entries(sortOptions).map(([key, label]) => (
-                                        <button
-                                            key={key}
-                                            onClick={() => {
-                                                setSortOption(key);
-                                                closeDropdown();
-                                            }}
-                                            className={`w-full text-left p-2 text-body rounded-md cursor-pointer transition-colors ${sortOption === key ? 'bg-primary/20 text-text-main' : 'hover:bg-border text-text-secondary'}`}
-                                        >
-                                            {label}
-                                        </button>
-                                    ))}
-                                </>
-                            )}
-                        </StyledDropdown>
+                    <div className="flex items-center gap-2 flex-grow sm:flex-grow-0">
+                        <label htmlFor="sort-select" className="text-sm font-medium text-text-secondary flex-shrink-0">Sort by:</label>
+                        <div className="w-full sm:w-52">
+                            <StyledDropdown
+                                triggerContent={sortOptions[sortOption]}
+                                widthClass="w-full"
+                            >
+                                {(closeDropdown) => (
+                                    <>
+                                        {Object.entries(sortOptions).map(([key, label]) => (
+                                            <button
+                                                key={key}
+                                                onClick={() => {
+                                                    setSortOption(key);
+                                                    closeDropdown();
+                                                }}
+                                                className={`w-full text-left p-2 text-body rounded-md cursor-pointer transition-colors ${sortOption === key ? 'bg-primary/20 text-text-main' : 'hover:bg-border text-text-secondary'}`}
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
+                                    </>
+                                )}
+                            </StyledDropdown>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 p-1 bg-background rounded-lg border border-border">
+                        <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-md ${viewMode === 'grid' ? 'bg-primary text-white' : 'text-text-secondary'}`}><GridViewIcon /></button>
+                        <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-md ${viewMode === 'list' ? 'bg-primary text-white' : 'text-text-secondary'}`}><ListViewIcon /></button>
                     </div>
                 </div>
             </div>
@@ -327,13 +415,27 @@ export const BrandsPage: React.FC = () => {
              )}
             
             {isLoading ? (
-                <div className="space-y-3">
-                    <BrandListItemSkeleton />
-                    <BrandListItemSkeleton />
-                    <BrandListItemSkeleton />
-                </div>
+                viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[...Array(6)].map((_, i) => <BrandCardSkeleton key={i} />)}
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        <BrandListItemSkeleton />
+                        <BrandListItemSkeleton />
+                        <BrandListItemSkeleton />
+                    </div>
+                )
             ) : (
-                <BrandList brands={brands} onEditBrand={setEditingBrand} />
+                viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {brands.map((brand) => (
+                            <BrandCard key={brand.id} brand={brand} onEdit={setEditingBrand} />
+                        ))}
+                    </div>
+                ) : (
+                    <BrandList brands={brands} onEditBrand={setEditingBrand} />
+                )
             )}
         </section>
         

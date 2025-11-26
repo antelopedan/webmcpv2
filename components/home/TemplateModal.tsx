@@ -1,8 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { AnalysisTemplate, SampleReport } from '../../types';
 import { iconComponentMap } from '../../data/templates';
 import { CopyIcon, CheckCircleIcon } from '../icons/home';
 import { getAvatarColor } from '../utils/brandUtils';
+import { getFirstBrandItem } from '../utils/reportUtils';
 
 // --- Helper Components & Data ---
 
@@ -15,7 +18,7 @@ const ChatGPTIcon = () => (
 );
 
 const SampleReportItem: React.FC<{ report: SampleReport; onView: (report: SampleReport) => void }> = ({ report, onView }) => {
-    const brand = report.brands?.[0];
+    const brand = getFirstBrandItem(report.brands);
     if (!brand) return null;
 
     const avatarColorClass = getAvatarColor(brand.name);
@@ -83,7 +86,7 @@ export const TemplateModal: React.FC<TemplateModalProps> = ({ template, sampleRe
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [onClose]);
     
-    return (
+    return createPortal(
         <div 
             className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 fade-in font-sans"
             onClick={onClose}
@@ -132,16 +135,20 @@ export const TemplateModal: React.FC<TemplateModalProps> = ({ template, sampleRe
                     <div>
                          <h3 className="text-caption font-semibold text-text-main uppercase tracking-wider mb-2">View Sample Reports</h3>
                          <div className="space-y-2">
-                            {sampleReports.map((report) => (
-                                <SampleReportItem
-                                    key={report.id}
-                                    report={report}
-                                    onView={(report) => {
-                                        onClose();
-                                        onViewSampleReport(report);
-                                    }}
-                                />
-                            ))}
+                            {sampleReports.length > 0 ? (
+                                sampleReports.map((report) => (
+                                    <SampleReportItem
+                                        key={report.id}
+                                        report={report}
+                                        onView={(report) => {
+                                            onClose();
+                                            onViewSampleReport(report);
+                                        }}
+                                    />
+                                ))
+                            ) : (
+                                <p className="text-caption text-text-secondary italic">No sample reports available for this category.</p>
+                            )}
                          </div>
                     </div>
                 </div>
@@ -159,6 +166,7 @@ export const TemplateModal: React.FC<TemplateModalProps> = ({ template, sampleRe
                      </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };

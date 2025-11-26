@@ -187,15 +187,6 @@ export interface HomeStats {
   avg_rating: number;
 }
 
-export interface AnalysisTemplate {
-  id: number;
-  name: string;
-  description: string;
-  prompt: string;
-  category: string;
-  estimated_time_minutes: number;
-}
-
 export interface SampleReport {
   id: number;
   component_category: string;
@@ -203,6 +194,16 @@ export interface SampleReport {
   explanation: string | null;
   report_url: string;
   brands: ReportBrandsConfig | null;
+}
+
+export interface AnalysisTemplate {
+  id: number;
+  name: string;
+  description: string;
+  prompt: string;
+  category: string;
+  estimated_time_minutes: number;
+  sample_reports: SampleReport[];
 }
 
 export interface TemplatesResponse {

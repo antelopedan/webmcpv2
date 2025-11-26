@@ -3,13 +3,14 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import type { Report, Brand, BrandListResponse, BrandDisplayItem } from '../../types';
 import { api } from '../../api';
 import { SearchIcon } from '../icons/SearchIcon';
-import { PlusIcon } from '../icons/PlusIcon';
 import { DocumentIcon } from '../icons/DocumentIcon';
 import { GridViewIcon, ListViewIcon, ShareIcon, ActionsMenuIcon } from '../icons/reports';
+import { CheckCircleIcon } from '../icons/CheckCircleIcon';
 import { BrandAvatar } from '../utils/brandUtils';
 import { useClickOutside } from '../utils/useClickOutside';
 import { StyledDropdown } from '../shared/StyledDropdown';
 import { ReportDetailPage } from './ReportDetailPage';
+import { EditReportModal } from '../EditReportModal';
 import { getCategoryColor, getBrandNamesFromReport, getFirstBrandItem } from '../utils/reportUtils';
 
 const useDebounce = <T,>(value: T, delay: number): T => {
@@ -25,12 +26,42 @@ const useDebounce = <T,>(value: T, delay: number): T => {
     return debouncedValue;
 };
 
-const ReportCard: React.FC<{ report: Report; onDelete: (id: number) => void; onView: (report: Report) => void }> = ({ report, onDelete, onView }) => {
+const ReportCard: React.FC<{ report: Report; onDelete: (id: number) => void; onView: (report: Report) => void; onEdit: (report: Report) => void; }> = ({ report, onDelete, onView, onEdit }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isCopied, setIsCopied] = useState(false);
     const menuRef = React.useRef<HTMLDivElement>(null);
     useClickOutside(menuRef, () => setIsMenuOpen(false));
     
     const brandsConfig = report.brands;
+
+    const handleShare = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsMenuOpen(false);
+
+        const shareData = {
+            title: report.headline || 'Antelope Report',
+            text: report.explanation || 'Check out this analysis report.',
+            url: report.report_url
+        };
+
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+                return;
+            } catch (err) {
+                // Ignore AbortError (user cancelled), otherwise fall through to clipboard
+                if ((err as Error).name !== 'AbortError') console.error(err);
+            }
+        }
+
+        try {
+            await navigator.clipboard.writeText(report.report_url);
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
+    };
 
     const renderBrandsFooter = () => {
         if (!brandsConfig || !brandsConfig.display || brandsConfig.display.length === 0) return null;
@@ -95,8 +126,10 @@ const ReportCard: React.FC<{ report: Report; onDelete: (id: number) => void; onV
                         </button>
                         {isMenuOpen && (
                              <div className="absolute top-full right-0 mt-2 w-40 bg-background border border-border rounded-lg shadow-lg z-10 py-1">
-                                <button className="w-full text-left px-4 py-2 text-sm text-text-secondary hover:bg-border hover:text-text-main">Edit</button>
-                                <button className="w-full text-left px-4 py-2 text-sm text-text-secondary hover:bg-border hover:text-text-main flex items-center gap-2"><ShareIcon /> Share</button>
+                                <button onClick={() => { setIsMenuOpen(false); onEdit(report); }} className="w-full text-left px-4 py-2 text-sm text-text-secondary hover:bg-border hover:text-text-main">Edit</button>
+                                <button onClick={handleShare} className="w-full text-left px-4 py-2 text-sm text-text-secondary hover:bg-border hover:text-text-main flex items-center gap-2">
+                                    {isCopied ? <><CheckCircleIcon /> Copied!</> : <><ShareIcon /> Share</>}
+                                </button>
                                 <div className="h-px bg-border my-1"></div>
                                 <button onClick={() => onDelete(report.id)} className="w-full text-left px-4 py-2 text-sm text-danger hover:bg-danger/10">Delete</button>
                             </div>
@@ -111,8 +144,9 @@ const ReportCard: React.FC<{ report: Report; onDelete: (id: number) => void; onV
     );
 };
 
-const ReportListItem: React.FC<{ report: Report; onDelete: (id: number) => void; onView: (report: Report) => void }> = ({ report, onDelete, onView }) => {
+const ReportListItem: React.FC<{ report: Report; onDelete: (id: number) => void; onView: (report: Report) => void; onEdit: (report: Report) => void; }> = ({ report, onDelete, onView, onEdit }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isCopied, setIsCopied] = useState(false);
     const menuRef = React.useRef<HTMLDivElement>(null);
     useClickOutside(menuRef, () => setIsMenuOpen(false));
     
@@ -120,29 +154,65 @@ const ReportListItem: React.FC<{ report: Report; onDelete: (id: number) => void;
     const firstBrand = getFirstBrandItem(report.brands);
     const heading = report.brands?.heading || report.headline || report.component_category;
     
+    const handleShare = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsMenuOpen(false);
+
+        const shareData = {
+            title: report.headline || 'Antelope Report',
+            text: report.explanation || 'Check out this analysis report.',
+            url: report.report_url
+        };
+
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+                return;
+            } catch (err) {
+                if ((err as Error).name !== 'AbortError') console.error(err);
+            }
+        }
+
+        try {
+            await navigator.clipboard.writeText(report.report_url);
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
+    };
+
     return (
-        <div onClick={() => onView(report)} className="flex items-center justify-between p-4 bg-surface border-b border-border group hover:bg-background transition-colors cursor-pointer">
-            <div className="flex items-center gap-4 flex-1 overflow-hidden">
-                <div className="flex items-center gap-2 w-1/4">
-                    {firstBrand && <BrandAvatar name={firstBrand.name} src={firstBrand.url || firstBrand.logo} />}
-                    <span className="font-medium text-text-main truncate">{firstBrand ? firstBrand.name : 'Report'}</span>
-                </div>
-                <p className="text-text-secondary truncate w-1/2">{heading}</p>
+        <div onClick={() => onView(report)} className="grid grid-cols-12 gap-4 items-center p-4 bg-surface border-b border-border group hover:bg-background transition-colors cursor-pointer">
+            <div className="col-span-3 flex items-center gap-2 overflow-hidden">
+                {firstBrand && <BrandAvatar name={firstBrand.name} src={firstBrand.url || firstBrand.logo} />}
+                <span className="font-medium text-text-main truncate">{firstBrand ? firstBrand.name : 'Report'}</span>
             </div>
-            <div className="flex items-center gap-6 pl-4">
-                 <div className={`text-xs font-semibold px-2 py-0.5 rounded-full text-white/80 truncate ${getCategoryColor(report.component_category)}`}>
+            
+            <div className="col-span-5 text-text-secondary truncate">
+                {heading}
+            </div>
+            
+            <div className="col-span-3">
+                 <div className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full text-white/80 truncate ${getCategoryColor(report.component_category)}`}>
                     {report.component_category || 'General'}
                 </div>
-                 <div className="relative" ref={menuRef} onClick={e => e.stopPropagation()}>
-                    <button onClick={() => setIsMenuOpen(p => !p)} className="text-text-secondary hover:text-text-main p-1 rounded-full hover:bg-border transition-colors opacity-0 group-hover:opacity-100">
-                        <ActionsMenuIcon />
-                    </button>
-                    {isMenuOpen && (
-                         <div className="absolute top-full right-0 mt-2 w-40 bg-background border border-border rounded-lg shadow-lg z-10 py-1">
-                            <button onClick={() => onDelete(report.id)} className="w-full text-left px-4 py-2 text-sm text-danger hover:bg-danger/10">Delete</button>
-                        </div>
-                    )}
-                </div>
+            </div>
+
+             <div className="col-span-1 flex justify-end relative" ref={menuRef} onClick={e => e.stopPropagation()}>
+                <button onClick={() => setIsMenuOpen(p => !p)} className="text-text-secondary hover:text-text-main p-1 rounded-full hover:bg-border transition-colors opacity-0 group-hover:opacity-100">
+                    <ActionsMenuIcon />
+                </button>
+                {isMenuOpen && (
+                     <div className="absolute top-full right-0 mt-2 w-40 bg-background border border-border rounded-lg shadow-lg z-10 py-1">
+                        <button onClick={() => { setIsMenuOpen(false); onEdit(report); }} className="w-full text-left px-4 py-2 text-sm text-text-secondary hover:bg-border hover:text-text-main">Edit</button>
+                        <button onClick={handleShare} className="w-full text-left px-4 py-2 text-sm text-text-secondary hover:bg-border hover:text-text-main flex items-center gap-2">
+                            {isCopied ? <><CheckCircleIcon /> Copied!</> : <><ShareIcon /> Share</>}
+                        </button>
+                        <div className="h-px bg-border my-1"></div>
+                        <button onClick={() => onDelete(report.id)} className="w-full text-left px-4 py-2 text-sm text-danger hover:bg-danger/10">Delete</button>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -172,6 +242,11 @@ interface DashboardsPageProps {
   initialReport?: Report;
 }
 
+type SortConfig = {
+    key: 'brand' | 'headline' | 'category' | 'id';
+    direction: 'asc' | 'desc';
+};
+
 export const DashboardsPage: React.FC<DashboardsPageProps> = ({ initialReport }) => {
   const [reports, setReports] = useState<Report[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -184,7 +259,10 @@ export const DashboardsPage: React.FC<DashboardsPageProps> = ({ initialReport })
   const [selectedType, setSelectedType] = useState<string>('all');
   
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [editingReport, setEditingReport] = useState<Report | null>(null);
   const initialReportProp = useRef(initialReport);
+
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'id', direction: 'desc' });
   
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
@@ -227,6 +305,51 @@ export const DashboardsPage: React.FC<DashboardsPageProps> = ({ initialReport })
     });
   }, [reports, debouncedSearchQuery, selectedBrand, selectedType]);
   
+  const sortedReports = useMemo(() => {
+    return [...filteredReports].sort((a, b) => {
+        let valA: string | number | null = '';
+        let valB: string | number | null = '';
+
+        switch (sortConfig.key) {
+            case 'brand':
+                const brandA = getFirstBrandItem(a.brands)?.name || '';
+                const brandB = getFirstBrandItem(b.brands)?.name || '';
+                valA = brandA.toLowerCase();
+                valB = brandB.toLowerCase();
+                break;
+            case 'headline':
+                valA = (a.headline || a.brands?.heading || '').toLowerCase();
+                valB = (b.headline || b.brands?.heading || '').toLowerCase();
+                break;
+            case 'category':
+                valA = a.component_category.toLowerCase();
+                valB = b.component_category.toLowerCase();
+                break;
+            case 'id':
+            default:
+                valA = a.id;
+                valB = b.id;
+                break;
+        }
+
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+  }, [filteredReports, sortConfig]);
+
+  const handleSort = (key: SortConfig['key']) => {
+      setSortConfig(current => ({
+          key,
+          direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+      }));
+  };
+
+  const getSortIcon = (key: SortConfig['key']) => {
+      if (sortConfig.key !== key) return null;
+      return <span className="ml-1 opacity-70">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
+  };
+
   const reportTypes = useMemo(() => {
       const categories = new Set(reports.map(r => r.component_category));
       return Array.from(categories);
@@ -278,6 +401,23 @@ export const DashboardsPage: React.FC<DashboardsPageProps> = ({ initialReport })
         await api.delete(`reports/${id}`);
     } catch (err) {
         setError('Failed to delete report. Reverting changes.');
+        setReports(originalReports);
+    }
+  };
+  
+  const handleUpdateReport = async (id: number, data: { headline: string; explanation: string }) => {
+    const originalReports = [...reports];
+    
+    // Optimistic update
+    setReports(reports.map(r => r.id === id ? { ...r, ...data } : r));
+    setEditingReport(null);
+
+    try {
+        await api.put(`reports/${id}`, data);
+    } catch (err) {
+        console.error("Failed to update report:", err);
+        setError('Failed to save changes. The API might not support editing yet.');
+        // Revert changes on error
         setReports(originalReports);
     }
   };
@@ -345,18 +485,47 @@ export const DashboardsPage: React.FC<DashboardsPageProps> = ({ initialReport })
                     </StyledDropdown>
                 </div>
             </div>
-             <div className="mt-6 flex justify-between items-center">
-                 <button className="flex items-center gap-2 bg-accent text-white font-semibold px-4 py-2 rounded-md hover:bg-accent/90 transition-colors">
-                    <PlusIcon /> Create Report
-                </button>
-                <div className="flex items-center gap-2 p-1 bg-background rounded-lg border border-border">
-                    <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-md ${viewMode === 'grid' ? 'bg-primary text-white' : 'text-text-secondary'}`}><GridViewIcon /></button>
-                    <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-md ${viewMode === 'list' ? 'bg-primary text-white' : 'text-text-secondary'}`}><ListViewIcon /></button>
+             <div className="mt-6 flex justify-end items-center">
+                <div className="flex flex-col sm:flex-row justify-end items-center gap-4 w-full">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-text-secondary">Sort:</span>
+                        <StyledDropdown
+                            triggerContent={
+                                sortConfig.key === 'id' ? 'Date Created' :
+                                sortConfig.key === 'headline' ? 'Report Name' :
+                                sortConfig.key === 'brand' ? 'Brand' : 'Category'
+                            }
+                            widthClass="w-40"
+                        >
+                            {(close) => (
+                                <>
+                                    <button onClick={() => { setSortConfig(prev => ({ ...prev, key: 'id' })); close(); }} className="w-full text-left p-2 text-body hover:bg-border rounded-md">Date Created</button>
+                                    <button onClick={() => { setSortConfig(prev => ({ ...prev, key: 'headline' })); close(); }} className="w-full text-left p-2 text-body hover:bg-border rounded-md">Report Name</button>
+                                    <button onClick={() => { setSortConfig(prev => ({ ...prev, key: 'brand' })); close(); }} className="w-full text-left p-2 text-body hover:bg-border rounded-md">Brand</button>
+                                    <button onClick={() => { setSortConfig(prev => ({ ...prev, key: 'category' })); close(); }} className="w-full text-left p-2 text-body hover:bg-border rounded-md">Category</button>
+                                </>
+                            )}
+                        </StyledDropdown>
+                        <button
+                            onClick={() => setSortConfig(prev => ({ ...prev, direction: prev.direction === 'asc' ? 'desc' : 'asc' }))}
+                            className="p-2 bg-background border border-border rounded-lg text-text-secondary hover:border-primary hover:text-text-main transition-colors"
+                            title={sortConfig.direction === 'asc' ? 'Ascending' : 'Descending'}
+                        >
+                            {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-2 p-1 bg-background rounded-lg border border-border">
+                        <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-md ${viewMode === 'grid' ? 'bg-primary text-white' : 'text-text-secondary'}`}><GridViewIcon /></button>
+                        <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-md ${viewMode === 'list' ? 'bg-primary text-white' : 'text-text-secondary'}`}><ListViewIcon /></button>
+                    </div>
                 </div>
              </div>
         </section>
 
-        {error && <div className="p-4 bg-danger/20 text-danger border border-danger/50 rounded-lg">{error}</div>}
+        {error && <div className="p-4 bg-danger/20 text-danger border border-danger/50 rounded-lg flex justify-between items-center">
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className="font-bold hover:text-danger/80">&times;</button>
+        </div>}
         
         <main>
              {isLoading ? (
@@ -369,7 +538,7 @@ export const DashboardsPage: React.FC<DashboardsPageProps> = ({ initialReport })
                         {[...Array(6)].map((_, i) => <div key={i} className="h-[73px] border-b border-border last:border-b-0"></div>)}
                     </div>
                  )
-             ) : filteredReports.length === 0 ? (
+             ) : sortedReports.length === 0 ? (
                 <div className="text-center py-16 bg-surface rounded-lg border border-border">
                     <DocumentIcon />
                     <h3 className="mt-4 text-xl font-semibold">No Reports Found</h3>
@@ -377,15 +546,44 @@ export const DashboardsPage: React.FC<DashboardsPageProps> = ({ initialReport })
                 </div>
              ) : viewMode === 'grid' ? (
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredReports.map(d => <ReportCard key={d.id} report={d} onDelete={handleDeleteReport} onView={handleViewReport} />)}
+                    {sortedReports.map(d => <ReportCard key={d.id} report={d} onDelete={handleDeleteReport} onView={handleViewReport} onEdit={setEditingReport} />)}
                 </div>
              ) : (
                  <div className="bg-surface rounded-lg border border-border overflow-hidden">
-                    {filteredReports.map(d => <ReportListItem key={d.id} report={d} onDelete={handleDeleteReport} onView={handleViewReport} />)}
+                    <div className="grid grid-cols-12 gap-4 items-center px-4 py-3 border-b border-border bg-surface/50 text-sm font-semibold text-text-secondary uppercase tracking-wider">
+                        <div 
+                            className="col-span-3 cursor-pointer hover:text-text-main flex items-center" 
+                            onClick={() => handleSort('brand')}
+                        >
+                            Brand {getSortIcon('brand')}
+                        </div>
+                        <div 
+                            className="col-span-5 cursor-pointer hover:text-text-main flex items-center"
+                            onClick={() => handleSort('headline')}
+                        >
+                            Report Name {getSortIcon('headline')}
+                        </div>
+                        <div 
+                            className="col-span-3 cursor-pointer hover:text-text-main flex items-center"
+                            onClick={() => handleSort('category')}
+                        >
+                            Category {getSortIcon('category')}
+                        </div>
+                        <div className="col-span-1"></div>
+                    </div>
+                    {sortedReports.map(d => <ReportListItem key={d.id} report={d} onDelete={handleDeleteReport} onView={handleViewReport} onEdit={setEditingReport} />)}
                  </div>
              )}
         </main>
       </div>
+
+      {editingReport && (
+          <EditReportModal 
+            report={editingReport}
+            onSave={handleUpdateReport}
+            onClose={() => setEditingReport(null)}
+          />
+      )}
     </div>
   );
 };
