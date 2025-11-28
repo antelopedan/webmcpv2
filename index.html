@@ -9,36 +9,61 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
     <!-- flatpickr -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     
     <script>
       tailwind.config = {
         theme: {
           extend: {
              fontFamily: {
-              sans: ['Poppins', 'sans-serif'],
+              sans: ['Poppins', 'Inter', 'sans-serif'],
             },
             fontSize: {
               'body': '13px',
               'caption': '11px',
             },
             colors: {
-              background: '#0F172A',      // Slate 900
-              surface: '#1E293B',         // Slate 800
-              primary: '#18898D',         // Custom Teal
-              accent: '#F97316',          // Orange 500
-              'text-main': '#F1F5F9',       // Slate 100
-              'text-secondary': '#94A3B8',  // Slate 400
-              border: '#334155',          // Slate 700
-              'dark-blue': '#2563EB',      // Blue 600
-              'light-blue': '#60A5FA',     // Blue 400
-              success: '#22C55E',         // Green 500
-              warning: '#EAB308',         // Yellow 500
-              danger: '#EF4444',          // Red 500
+              background: '#F8FAFC',      // Slate 50 (Crisp White/Gray)
+              surface: '#FFFFFF',         // White
+              box: '#FFFFFF',             // White (Light Box Background)
+              'box-border': '#E2E8F0',    // Light Slate Border for Boxes
+              
+              // Main UI Chrome Colors (Restored)
+              primary: '#18898D',         // Original Teal
+              accent: '#E06348',          // Original Orange
+              
+              // Vibrant Support Palette (Charts, Badges, Tags)
+              'brand-green': '#24AE8D',
+              'brand-orange': '#E54D2E',
+              'brand-red': '#EA3F3F',
+              'brand-yellow': '#FFA34E',
+              
+              // Status Colors (Mapped to Vibrant Palette)
+              danger: '#EA3F3F',          // brand-red
+              warning: '#FFA34E',         // brand-yellow
+              success: '#24AE8D',         // brand-green
+              
+              // Legacy Mappings for compatibility
+              'dark-blue': '#18898D',     // Mapped to Primary
+              'light-blue': '#24AE8D',    // Mapped to Vibrant Green
+              
+              'text-main': '#1E293B',       // Slate 800
+              'text-secondary': '#64748B',  // Slate 500
+              border: '#E2E8F0',          // Lighter Slate 200
+              
+              // Pastel Tile Colors
+              'tile-teal': '#EAF4F6',
+              'tile-orange': '#FDEEE2',
+              'tile-rose': '#FBE9E4',
+              'tile-yellow': '#FFF6E0',
+
+              // Teal shades for Soft Horizon theme
+              'teal-50': '#f0fdfa',
+              'teal-100': '#ccfbf1',
+              'teal-900': '#134e4a',
             },
           }
         }
@@ -49,11 +74,7 @@
         font-family: 'Poppins', sans-serif;
       }
       body.bg-background {
-        background-color: #0F172A;
-        background-image: 
-          linear-gradient(rgba(51, 65, 85, 0.2) 1px, transparent 1px), 
-          linear-gradient(90deg, rgba(51, 65, 85, 0.2) 1px, transparent 1px);
-        background-size: 2rem 2rem;
+        background-color: #F8FAFC;
       }
       .fade-in {
         animation: fadeIn 0.5s ease-in-out;
@@ -63,28 +84,111 @@
         from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
       }
-      /* Custom styles for flatpickr */
-      .flatpickr-calendar { background: #1E293B !important; border-color: #334155 !important; box-shadow: 0 0 15px rgba(0,0,0,0.5) !important; }
-      .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange { background: #18898D !important; border-color: #18898D !important; }
-      .flatpickr-day:hover { background: #334155 !important; }
-      .flatpickr-time input:hover, .flatpickr-time .flatpickr-am-pm:hover { background: #334155 !important; }
-      span.flatpickr-weekday, .flatpickr-months .flatpickr-month, .numInputWrapper span, .flatpickr-time .flatpickr-time-separator, .flatpickr-time .flatpickr-am-pm { color: #F1F5F9 !important; }
-      .flatpickr-current-month .numInput, .flatpickr-time input { color: #F1F5F9 !important; }
-      /* Custom Scrollbar */
+      
+      /* Cut Corner Utility - Subtle 4-corner chamfer */
+      .cut-corner {
+        clip-path: polygon(
+          0 8px, 
+          8px 0, 
+          calc(100% - 8px) 0, 
+          100% 8px, 
+          100% calc(100% - 8px), 
+          calc(100% - 8px) 100%, 
+          8px 100%, 
+          0 calc(100% - 8px)
+        );
+      }
+      
+      /* Extra Subtle Cut Corner for small UI elements like Sidebar links */
+      .cut-corner-sm {
+        clip-path: polygon(
+          0 4px, 
+          4px 0, 
+          calc(100% - 4px) 0, 
+          100% 4px, 
+          100% calc(100% - 4px), 
+          calc(100% - 4px) 100%, 
+          4px 100%, 
+          0 calc(100% - 4px)
+        );
+      }
+
+      /* Custom styles for flatpickr - adjusted for light theme */
+        .flatpickr-calendar {
+          background-color: #FFFFFF !important;
+          border: 1px solid #E2E8F0 !important;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+        }
+        .flatpickr-day, .flatpickr-weekday {
+          color: #1E293B !important;
+        }
+        .flatpickr-day:hover, .flatpickr-day:focus {
+          background-color: #F1F5F9 !important;
+          border-color: #F1F5F9 !important;
+        }
+        .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
+          background-color: #E06348 !important; /* accent */
+          border-color: #E06348 !important;
+          color: #ffffff !important;
+        }
+        .flatpickr-day.inRange {
+            background-color: rgba(229, 77, 46, 0.1) !important;
+            border-color: transparent !important;
+            color: #1E293B !important;
+            box-shadow: -5px 0 0 #F1F5F9, 5px 0 0 #F1F5F9 !important;
+        }
+        .flatpickr-time {
+            background-color: #FFFFFF !important;
+        }
+        .flatpickr-time .numInput, .flatpickr-time .flatpickr-am-pm {
+            color: #1E293B !important;
+        }
+        .flatpickr-time .numInput:hover, .flatpickr-time .flatpickr-am-pm:hover {
+            background-color: #F1F5F9 !important;
+        }
+        .flatpickr-current-month .flatpickr-monthDropdown-months {
+            color: #1E293B !important;
+            background-color: transparent !important;
+        }
+        .flatpickr-current-month input.cur-year {
+            color: #1E293B !important;
+        }
+        .flatpickr-rContainer .flatpickr-weekdays {
+            background-color: transparent !important;
+        }
+        span.flatpickr-weekday {
+            color: #64748B !important;
+        }
+
+      /* Custom Scrollbar - cleaner look */
       .custom-scrollbar::-webkit-scrollbar {
-        width: 8px;
+        width: 6px;
       }
       .custom-scrollbar::-webkit-scrollbar-track {
         background: transparent;
       }
       .custom-scrollbar::-webkit-scrollbar-thumb {
-        background-color: #334155;
+        background-color: #CBD5E1;
         border-radius: 4px;
-        border: 2px solid #1E293B;
       }
       .custom-scrollbar {
         scrollbar-width: thin;
-        scrollbar-color: #334155 #1E293B;
+        scrollbar-color: #CBD5E1 transparent;
+      }
+      /* Teal Modal Scrollbar */
+      .modal-scrollbar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .modal-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .modal-scrollbar::-webkit-scrollbar-thumb {
+        background-color: #18898D; /* primary teal */
+        border-radius: 3px;
+      }
+      .modal-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: #18898D transparent;
       }
     </style>
   <script type="importmap">

@@ -4,10 +4,10 @@ import { createPortal } from 'react-dom';
 import type { AnalysisTemplate, SampleReport } from '../../types';
 import { iconComponentMap } from '../../data/templates';
 import { CopyIcon, CheckCircleIcon } from '../icons/home';
-import { getAvatarColor } from '../utils/brandUtils';
+import { BrandAvatar } from '../utils/brandUtils';
 import { getFirstBrandItem } from '../utils/reportUtils';
 
-// --- Helper Components & Data ---
+// --- ICONS & ASSETS ---
 
 const ClaudeIcon = () => (
     <img src="https://img.icons8.com/?size=100&id=1G3UNEZHMjPH&format=png&color=FFFFFF" alt="Claude icon" className="w-5 h-5" style={{ minWidth: '20px' }} />
@@ -17,36 +17,17 @@ const ChatGPTIcon = () => (
     <img src="https://img.icons8.com/?size=100&id=Nts60kQIvGqe&format=png&color=FFFFFF" alt="ChatGPT icon" className="w-5 h-5" style={{ minWidth: '20px' }} />
 );
 
-const SampleReportItem: React.FC<{ report: SampleReport; onView: (report: SampleReport) => void }> = ({ report, onView }) => {
-    const brand = getFirstBrandItem(report.brands);
-    if (!brand) return null;
+const CloseIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+);
 
-    const avatarColorClass = getAvatarColor(brand.name);
-
-    return (
-        <button
-            onClick={() => onView(report)}
-            className="flex items-center gap-3 w-full bg-background/50 border border-transparent hover:border-primary hover:bg-surface rounded-lg p-3 cursor-pointer transition-all text-left group"
-        >
-            <div className={`w-9 h-9 min-w-[36px] rounded-full flex items-center justify-center text-base font-bold text-white ${avatarColorClass}`}>
-                {brand.name.charAt(0)}
-            </div>
-            <div className="flex-1">
-                <div className="text-body font-medium text-text-main mb-0.5 group-hover:text-primary transition-colors">
-                    {brand.name}
-                </div>
-                <div className="text-caption text-text-secondary leading-tight">
-                    {report.component_category}
-                </div>
-            </div>
-        </button>
-    );
-};
-
+// --- UTILS ---
 
 const formatCategory = (category: string) => {
     return category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
+
+// --- MAIN COMPONENT ---
 
 interface TemplateModalProps {
   template: AnalysisTemplate;
@@ -87,84 +68,129 @@ export const TemplateModal: React.FC<TemplateModalProps> = ({ template, sampleRe
     }, [onClose]);
     
     return createPortal(
-        <div 
-            className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 fade-in font-sans"
-            onClick={onClose}
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 font-sans">
+            {/* Backdrop */}
             <div 
-                className="bg-gradient-to-br from-[#1F3A4E] to-[#172A38] rounded-xl border border-primary/30 shadow-2xl w-full max-w-[600px] max-h-[85vh] flex flex-col overflow-hidden"
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
+                onClick={onClose}
+            />
+
+            {/* Modal Card */}
+            <div 
+                className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200"
                 onClick={e => e.stopPropagation()}
             >
+                
                 {/* Header */}
-                <div className="p-5 border-b border-white/5">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-accent/20 to-accent/10 rounded-lg flex items-center justify-center border border-accent/30 text-accent">
-                                {IconComponent ? <IconComponent className="w-6 h-6" /> : '✨'}
-                            </div>
-                            <div>
-                                <h2 className="text-base font-semibold text-text-main">{template.name}</h2>
-                                <p className="text-caption text-text-secondary">Est. {template.estimated_time_minutes} minutes</p>
-                            </div>
+                <div className="flex items-start justify-between p-6 pb-2">
+                    <div className="flex gap-4">
+                        <div className="flex-shrink-0 w-12 h-12 bg-orange-50 text-[#E06348] rounded-xl flex items-center justify-center">
+                             {IconComponent ? <IconComponent className="w-6 h-6" /> : '✨'}
                         </div>
-                        <button onClick={onClose} className="text-text-secondary hover:text-text-main text-2xl p-0 transition-colors">✕</button>
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-900 leading-tight">{template.name}</h2>
+                            <p className="text-sm text-slate-500 font-medium mt-1">Est. {template.estimated_time_minutes} minutes</p>
+                        </div>
                     </div>
-                    <p className="text-sm text-text-secondary leading-relaxed">
-                        {template.description} This template provides a deeper look at your brand's social media analysis, helping you stay ahead of the curve.
+                    <button 
+                        onClick={onClose} 
+                        className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-100"
+                    >
+                        <CloseIcon />
+                    </button>
+                </div>
+
+                <div className="px-6 py-2">
+                    <p className="text-slate-600 leading-relaxed text-sm">
+                        {template.description || "This template provides a deeper look at your brand's social media analysis, helping you stay ahead of the curve."}
                     </p>
                 </div>
-                
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto p-5 space-y-6 modal-scrollbar custom-scrollbar">
-                    {/* Prompt Section */}
+
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar space-y-6">
+                    
+                    {/* Prompt Box */}
                     <div>
                         <div className="flex items-center justify-between mb-2">
-                            <label className="text-caption font-semibold text-text-main uppercase tracking-wider">Example Prompt</label>
-                            <button onClick={handleCopyPrompt} className={`border rounded px-2 py-1 text-xs font-medium flex items-center gap-1.5 transition-all duration-300 ${copied ? 'bg-success/80 border-success text-white' : 'border-border text-text-secondary hover:border-primary hover:text-primary'}`}>
-                                {copied ? <><CheckCircleIcon /> Copied</> : <><CopyIcon /> Copy</>}
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Example Prompt</label>
+                            <button 
+                                onClick={handleCopyPrompt} 
+                                className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors"
+                            >
+                                {copied ? (
+                                    <><CheckCircleIcon /> <span className="text-green-600">Copied</span></>
+                                ) : (
+                                    <><CopyIcon /> Copy</>
+                                )}
                             </button>
                         </div>
-                        <textarea
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            className="w-full h-32 bg-background border border-border rounded-lg p-3 text-sm text-text-main font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
-                        />
+                        <div className="bg-teal-50 rounded-xl p-4 border border-teal-100/50 relative group">
+                            <textarea
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                className="w-full h-32 bg-transparent text-sm text-slate-700 font-medium resize-none focus:outline-none leading-relaxed"
+                                spellCheck={false}
+                            />
+                        </div>
                     </div>
-                    
-                    {/* Samples Section */}
+
+                    {/* Sample Reports */}
                     <div>
-                         <h3 className="text-caption font-semibold text-text-main uppercase tracking-wider mb-2">View Sample Reports</h3>
-                         <div className="space-y-2">
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">View Sample Reports</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             {sampleReports.length > 0 ? (
-                                sampleReports.map((report) => (
-                                    <SampleReportItem
-                                        key={report.id}
-                                        report={report}
-                                        onView={(report) => {
-                                            onClose();
-                                            onViewSampleReport(report);
-                                        }}
-                                    />
-                                ))
+                                sampleReports.map(report => {
+                                    const brand = getFirstBrandItem(report.brands);
+                                    return (
+                                        <button 
+                                            key={report.id}
+                                            onClick={() => { onClose(); onViewSampleReport(report); }}
+                                            className="flex flex-col items-start p-3 rounded-xl border border-slate-200 bg-white hover:border-primary/50 hover:shadow-md transition-all text-left group h-full"
+                                        >
+                                            <div className="flex items-center gap-2 mb-2 w-full">
+                                                {brand ? (
+                                                    <>
+                                                        <BrandAvatar name={brand.name} src={brand.url || brand.logo} size="w-6 h-6" />
+                                                        <span className="text-sm font-bold text-slate-700 truncate group-hover:text-primary">{brand.name}</span>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-sm font-bold text-slate-700">Sample</span>
+                                                )}
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 line-clamp-3 leading-tight">
+                                                {report.component_category || "View sample analysis report"}
+                                            </p>
+                                        </button>
+                                    );
+                                })
                             ) : (
-                                <p className="text-caption text-text-secondary italic">No sample reports available for this category.</p>
+                                <div className="col-span-3 py-6 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                                    <p className="text-sm text-slate-400 italic">No sample reports available for this category.</p>
+                                </div>
                             )}
-                         </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* Footer */}
-                <div className="p-5 border-t border-white/5 bg-black/20">
-                     <label className="text-xs font-semibold text-text-main uppercase tracking-wider mb-2 block">Open In</label>
-                     <div className="grid grid-cols-2 gap-2">
-                         <button onClick={handleOpenInClaude} className="bg-[#E6523C] text-white font-semibold py-2.5 px-4 rounded-md flex items-center justify-center gap-2 hover:bg-[#D1453A] transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#E6523C]/30">
-                             <ClaudeIcon /> Claude
-                         </button>
-                         <button onClick={handleOpenInChatGPT} className="bg-[#E6523C] text-white font-semibold py-2.5 px-4 rounded-md flex items-center justify-center gap-2 hover:bg-[#D1453A] transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#E6523C]/30">
-                             <ChatGPTIcon /> ChatGPT
-                         </button>
-                     </div>
+                {/* Footer Buttons */}
+                <div className="p-6 pt-4 border-t border-slate-100 bg-slate-50/50 mt-auto">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 block">Open In</label>
+                    <div className="grid grid-cols-2 gap-3">
+                        <button 
+                            onClick={handleOpenInClaude}
+                            className="bg-[#E6523C] hover:bg-[#D1453A] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-transform active:scale-[0.98] shadow-sm hover:shadow-md"
+                        >
+                            <ClaudeIcon /> Claude
+                        </button>
+                        <button 
+                            onClick={handleOpenInChatGPT}
+                            className="bg-[#10A37F] hover:bg-[#0E906F] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-transform active:scale-[0.98] shadow-sm hover:shadow-md"
+                        >
+                            <ChatGPTIcon /> ChatGPT
+                        </button>
+                    </div>
                 </div>
+
             </div>
         </div>,
         document.body

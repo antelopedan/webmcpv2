@@ -1,7 +1,7 @@
 
 // types.ts
 
-export type View = 'Home' | 'Brands' | 'Analytics' | 'Reports' | 'Settings';
+export type View = 'Home' | 'Brands' | 'Analytics' | 'Reports' | 'Settings' | 'Content' | 'FAQ';
 
 // START: Brands Page API Types
 export type BrandStatus = 'updated' | 'syncing' | 'error' | 'pending';
